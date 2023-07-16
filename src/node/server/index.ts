@@ -5,12 +5,37 @@ import connect from 'connect'
 import { blue, green} from 'picocolors'
 
 import { optimize } from '../optimizer'
+import { resolvePlugins, Plugin } from '../plugin'
+import { createPluginContainer, PluginContainer } from '../pluginContainer'
+import { indexHtmlMiddleware } from './middlewares/indexHtml'
 
-export default function startDevServer() {
+export interface ServerContext {
+    root: string,
+    pluginContainer: PluginContainer,
+    app: connect.Server,
+    plugins: Plugin[]
+} 
+
+export async function startDevServer() {
     const app = connect()
     const root = process.cwd()
     const startTime = Date.now()
 
+    const plugins = resolvePlugins()
+    const pluginContainer = createPluginContainer(plugins)
+    const serverContext: ServerContext = {
+        root: process.cwd(),
+        pluginContainer: pluginContainer,
+        app,
+        plugins
+    }
+
+    for (const plugin of plugins) {
+        if (plugin.configureServer) {
+            await plugin.configureServer(serverContext)
+        }
+    }
+    app.use(indexHtmlMiddleware(serverContext))
     app.listen(3000, async () => {
         await optimize(root)
         
@@ -21,3 +46,5 @@ export default function startDevServer() {
         console.log(`> 本地访问路径: ${blue('http://localhost:3000')}`)
     })
 }
+
+export interface ServerContext {}
