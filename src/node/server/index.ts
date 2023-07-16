@@ -5,9 +5,12 @@ import connect from 'connect'
 import { blue, green} from 'picocolors'
 
 import { optimize } from '../optimizer'
-import { resolvePlugins, Plugin } from '../plugin'
+import { resolvePlugins } from '../plugins'
+import { Plugin } from '../plugin'
 import { createPluginContainer, PluginContainer } from '../pluginContainer'
 import { indexHtmlMiddleware } from './middlewares/indexHtml'
+import { transformMiddleware } from './middlewares/transform'
+import { staticMiddleware } from './middlewares/static'
 
 export interface ServerContext {
     root: string,
@@ -35,7 +38,9 @@ export async function startDevServer() {
             await plugin.configureServer(serverContext)
         }
     }
+    app.use(transformMiddleware(serverContext))
     app.use(indexHtmlMiddleware(serverContext))
+    app.use(staticMiddleware(serverContext.root))
     app.listen(3000, async () => {
         await optimize(root)
         

@@ -6,7 +6,6 @@ export function scanPlugin(deps: Set<string>): Plugin {
     return {
         name:' esbuild:scan-deps',
         setup(build) {
-
             // 忽略的 文件类型
             build.onResolve(
                 { filter: new RegExp(`\\.${EXTERNAL_TYPES.join('|')}$`) },

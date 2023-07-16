@@ -32,7 +32,7 @@ export const createPluginContainer = (plugins: Plugin[]): PluginContainer => {
 
     const pluginContainer: PluginContainer = {
         async resolveId(id: string, importer?: string) {
-            const ctx = new Context() as any
+            const ctx = new Context()
             for (const plugin of plugins) {
                 if (plugin.resolveId) {
                     const newId = await plugin.resolveId.call(ctx, id, importer)
@@ -45,7 +45,7 @@ export const createPluginContainer = (plugins: Plugin[]): PluginContainer => {
             return null
         },
         async load(id) {
-            const ctx = new Context() as any
+            const ctx = new Context()
             for (const plugin of plugins) {
                 if (plugin.load) {
                     const result = await plugin.load.call(ctx, id)
