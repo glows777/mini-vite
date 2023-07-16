@@ -74,7 +74,7 @@ export function preBundlePlugin(deps: Set<string>): Plugin {
 
                         // 构造 export 语句交给 Esbuild 打包
                         proxyModule.push(
-                            `export { ${specifiers.join(',')} from '${entryPath}'}`,
+                            `export { ${specifiers.join(',')} } from '${entryPath}'`,
                             `export default require('${entryPath}')`
                         )
                     } else {
@@ -83,10 +83,7 @@ export function preBundlePlugin(deps: Set<string>): Plugin {
                         // export * 或者 export default 即可
                         if (exports.includes('default')) {
                             proxyModule.push(
-                                `
-                                    import d from '${entryPath}';
-                                    export default d
-                                `
+                                `import d from "${entryPath}";export default d`
                             )
                         }
                         proxyModule.push(`export * from '${entryPath}'`)
