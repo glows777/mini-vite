@@ -36,9 +36,7 @@ export function importAnalysisPlugin(): Plugin {
                 }
                 let resolvedId = `/${getShortName(resolved.id, serverContext.root)}`;
                 return resolvedId
-              }
-
-
+            }
             // 只处理 JS 相关请求
             if (!isJSRequest(id)) {
                 return null
@@ -48,6 +46,13 @@ export function importAnalysisPlugin(): Plugin {
             // 解析 import 语句
             const [imports] = parse(code)
             const ms = new MagicString(code)
+
+            // 拿到 模块依赖图
+            const { moduleGraph } = serverContext
+            // 拿到 当前模块
+            const curMod = moduleGraph.getModuleById(id)!
+            // 初始化 该模块所依赖的模块 Set
+            const importedModules = new Set<string>()
 
             // 对于 每一个 import 语句依次进行分析
             for (const importInfo of imports) {
@@ -70,15 +75,20 @@ export function importAnalysisPlugin(): Plugin {
                         path.join('/', PRE_BUNDLE_DIR, `${modSource}.js`)
                     )
                     ms.overwrite(modStart, modEnd, bundlePath)
+                    // 添加模块 到依赖模块 Set 中
+                    importedModules.add(bundlePath)
                 } else if (modSource.startsWith('.') || modSource.startsWith('/')) {
                     // 接调用插件上下文的 resolve 方法，会自动经过路径解析插件的处理
                     const resolved = await resolve(modSource, id)
                     if (resolved) {
                         ms.overwrite(modStart, modEnd, resolved)
+                        // 添加模块 到依赖模块 Set 中
+                        importedModules.add(resolved)
                     }
                 }
             }
-
+            // 更新 模块间的关系
+            moduleGraph.updateModuleInfo(curMod, importedModules)
             return {
                 code: ms.toString(),
                 // 生成 SourceMap

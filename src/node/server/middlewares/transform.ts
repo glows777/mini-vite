@@ -7,9 +7,15 @@ import createDebug from 'debug'
 const debug = createDebug('dev')
 
 export async function transformRequest(url: string, serverContext: ServerContext) {
-    const { pluginContainer } = serverContext
+    const { pluginContainer, moduleGraph } = serverContext
 
     url = cleanUrl(url)
+
+    let mod = await moduleGraph.getModuleByUrl(url)
+    // 命中缓存，直接返回，不需要再 去经过一系列处理
+    if (mod && mod.transformResult) {
+        return mod.transformResult
+    }
 
     // * 依次调用 插件容器的 resolvedId, load, transform 方法
     const resolvedResult = await pluginContainer.resolveId(url)
@@ -19,6 +25,8 @@ export async function transformRequest(url: string, serverContext: ServerContext
         if (typeof code === 'object' && code !== null) {
             code = code.code
         }
+        // 加载 load 后，需要注册模块
+        mod = await moduleGraph.ensureEntryFromUrl(url)
         if (code) {
             transformResult = await pluginContainer.transform(
                 code as string,
@@ -26,6 +34,11 @@ export async function transformRequest(url: string, serverContext: ServerContext
             )
         }
     }
+    // 添加缓存
+    if (mod) {
+        mod.transformResult = transformResult
+    }
+
     return transformResult
 } 
 

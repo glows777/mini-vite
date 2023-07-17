@@ -8,6 +8,8 @@ import { optimize } from '../optimizer'
 import { resolvePlugins } from '../plugins'
 import { Plugin } from '../plugin'
 import { createPluginContainer, PluginContainer } from '../pluginContainer'
+import { ModuleGraph } from '../ModuleGraph'
+
 import { indexHtmlMiddleware } from './middlewares/indexHtml'
 import { transformMiddleware } from './middlewares/transform'
 import { staticMiddleware } from './middlewares/static'
@@ -16,7 +18,8 @@ export interface ServerContext {
     root: string,
     pluginContainer: PluginContainer,
     app: connect.Server,
-    plugins: Plugin[]
+    plugins: Plugin[],
+    moduleGraph: ModuleGraph
 } 
 
 export async function startDevServer() {
@@ -25,12 +28,14 @@ export async function startDevServer() {
     const startTime = Date.now()
 
     const plugins = resolvePlugins()
+    const moduleGraph = new ModuleGraph(url => pluginContainer.resolveId(url))
     const pluginContainer = createPluginContainer(plugins)
     const serverContext: ServerContext = {
         root: process.cwd(),
         pluginContainer: pluginContainer,
         app,
-        plugins
+        plugins,
+        moduleGraph
     }
 
     for (const plugin of plugins) {
