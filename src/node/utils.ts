@@ -11,10 +11,11 @@ export function slash(p: string): string {
 
 export const isWindows = os.platform() === "win32"
 
-
 export function normalizePath(id: string): string {
   return path.posix.normalize(isWindows ? slash(id) : id)
 }
+export const cleanUrl = (url: string): string => 
+  url.replace(HASH_RE, '').replace(QEURY_RE, '')
 
 export const isJSRequest = (id: string): boolean => {
   id = cleanUrl(id)
@@ -29,12 +30,12 @@ export const isJSRequest = (id: string): boolean => {
   return false
 }
 
-export const cleanUrl = (url: string): string => 
-  url.replace(HASH_RE, '').replace(QEURY_RE, '')
-
 export function getShortName(file: string, root: string) {
   return file.startsWith(root + "/") ? path.posix.relative(root, file) : file
 }
+
+export const isCssRequest = (id: string): boolean => 
+  cleanUrl(id).endsWith('.css')
 
 export function isImportRequest(url: string): boolean {
   return url.endsWith("?import")

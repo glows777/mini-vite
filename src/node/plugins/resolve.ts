@@ -32,23 +32,23 @@ export function resolvePlugin(): Plugin {
                     throw new Error('`importer` should not be undefined')
                 }
                 const hasExtension = path.extname(id).length > 1
-                let reslovedId: string
+                let resolvedId: string
 
                 // 包含 文件名后缀,如 ./App.tsx
                 if (hasExtension) {
-                    reslovedId = normalizePath(resolve.sync(id, { basedir: path.dirname(importer) }))
-                    if (await pathExists(reslovedId)) {
-                        return { id: reslovedId }
+                    resolvedId = normalizePath(resolve.sync(id, { basedir: path.dirname(importer) }))
+                    if (await pathExists(resolvedId)) {
+                        return { id: resolvedId }
                     }
                 } else { // 不包含 文件名后缀   ./App -> ./App.tsx
                     for(const extname of DEFAULT_EXTERSIONS) {
                         try {
                             const withExtension = `${id}${extname}`
-                            reslovedId = normalizePath(resolve.sync(withExtension, {
+                            resolvedId = normalizePath(resolve.sync(withExtension, {
                                 basedir: path.dirname(importer)
                             }))
-                            if (await pathExists(reslovedId)) {
-                                return { id: reslovedId }
+                            if (await pathExists(resolvedId)) {
+                                return { id: resolvedId }
                             }
                         } catch (e) {
                             continue

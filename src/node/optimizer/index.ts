@@ -34,7 +34,7 @@ export async function optimize(root: string) {
 
     // 3. 预构建依赖
     await build({
-        entryPoints: [entry],
+        entryPoints: [...deps],
         write: true,
         bundle: true,
         format: 'esm',
