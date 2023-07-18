@@ -11,13 +11,14 @@ function App() {
       <header className="App-header">
         <img className="App-logo" src={logo} alt="" />
         <p>Hello Vite + React</p>
+        <h1>wsssss</h1>
         <p>
           <button type="button" onClick={() => setCount((count) => count + 1)}>
             count is: {count}
           </button>
         </p>
         <p>
-          Edit <code>App</code> and save e test.
+          Edit <code>App</code> and save a test.
         </p>
         <p>
           <a

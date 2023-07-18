@@ -7,7 +7,7 @@ export function bindingHMREvents(serverContext: ServerContext) {
     const { watcher, ws, root } = serverContext
 
     watcher.on('change', async file => {
-        console.log(`✨${blue("[hmr]")} ${green(file)} changed`)
+        console.log(`✨${blue("[hmr]")} ${green(getShortName(file, root))} changed`)
 
         const { moduleGraph } = serverContext
 
