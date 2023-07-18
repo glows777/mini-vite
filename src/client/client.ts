@@ -91,13 +91,11 @@ export const createHotContext = (ownerPath: string) => {
 
 export async function fetchUpdate({ path, timestamp }: Update) {
     const mod = hotModulesMap.get(path)
-    console.log(mod)
     if (!mod) return
 
     const moduleMap = new Map()
     const modulesToUpdate = new Set<string>()
     modulesToUpdate.add(path)
-    console.log(path)
     await Promise.all(
         Array.from(modulesToUpdate).map(async dep => {
             const [path, query] = dep.split('?')
@@ -121,4 +119,28 @@ export async function fetchUpdate({ path, timestamp }: Update) {
     }
 }
 
+// 添加 css 热更新
+const sheetsMap = new Map<string, HTMLStyleElement>()
+
+export function updateStyle(id: string, content: string) {
+    let style = sheetsMap.get(id)
+    if (!style) {
+        style = document.createElement('style')
+        style.setAttribute('type', 'text/css')
+        style.innerHTML = content
+        document.head.appendChild(style)
+    } else {
+        // 更新 style 标签
+        style.innerHTML = content
+    }
+}
+
+export function removeStyle(id: string) {
+    const style = sheetsMap.get(id)
+
+    if (style) {
+        document.head.removeChild(style)
+    }
+    sheetsMap.delete(id)
+}
 
