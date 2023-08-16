@@ -1,5 +1,13 @@
 import { LoadResult, PartialResolvedId, SourceDescription } from "rollup"
 import { ServerContext } from "./server"
+import { UserConfig, ConfigEnv, ResolvedConfig } from './config'
+
+export type PluginOption = Plugin
+  | false
+  | null
+  | undefined
+  | PluginOption[]
+  | Promise<Plugin | false | null | undefined | PluginOption[]>
 
 export type ServerHook = (
   server: ServerContext
@@ -7,7 +15,17 @@ export type ServerHook = (
 
 // 只实现以下这几个钩子
 export interface Plugin {
-  name: string
+  name: string,
+  enforce?: "pre" | "post"
+
+  apply?: "serve" | "build" | ((config: UserConfig, env: ConfigEnv) => boolean)
+
+  config?: (
+    config: UserConfig,
+    env: ConfigEnv
+  ) => UserConfig | null | void | Promise<UserConfig | null | void>
+
+  configResolved?: (config: ResolvedConfig) => void | Promise<void>
   configureServer?: ServerHook
   resolveId?: (
     id: string,

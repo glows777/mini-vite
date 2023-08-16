@@ -17,6 +17,7 @@ import { normalizePath } from '../utils'
 import { indexHtmlMiddleware } from './middlewares/indexHtml'
 import { transformMiddleware } from './middlewares/transform'
 import { staticMiddleware } from './middlewares/static'
+import { InlineConfig, resolveConfig } from '../config'
 
 export interface ServerContext {
     root: string,
@@ -31,7 +32,13 @@ export interface ServerContext {
     watcher: FSWatcher
 } 
 
-export async function startDevServer() {
+export async function startDevServer(inlineConfig: InlineConfig) {
+    if (inlineConfig.clearScreen === undefined || inlineConfig.clearScreen) {
+        console.clear()
+    }
+
+    const resolvedConfig = await resolveConfig(inlineConfig, 'serve', 'development')
+
     const app = connect()
     const root = process.cwd()
     const startTime = Date.now()

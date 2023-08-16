@@ -31,3 +31,12 @@ export const DEFAULT_EXTERSIONS = [".tsx", ".ts", ".jsx", "js"]
 export const HMR_HEADER = "vite-hmr"
 export const CLIENT_PUBLIC_PATH = "/@vite/client"
 export const HMR_PORT = 24678
+
+export const DEFAULT_CONFIG_FILES = [
+  "vite.config.js",
+  "vite.config.mjs",
+  "vite.config.ts",
+  "vite.config.cjs",
+  "vite.config.mts",
+  "vite.config.cts",
+]
