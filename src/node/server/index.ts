@@ -38,6 +38,7 @@ export async function startDevServer(inlineConfig: InlineConfig) {
     }
 
     const resolvedConfig = await resolveConfig(inlineConfig, 'serve', 'development')
+    // console.log(resolvedConfig)
 
     const app = connect()
     const root = process.cwd()

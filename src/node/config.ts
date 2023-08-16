@@ -181,7 +181,7 @@ export async function resolveConfig(
     }
     let { configFile } = config
 
-    // * 这里 需要强制使用 !== 因为，configFile 可以为空字符串 或者 undefined ,这代表着默认 configFile 的位置
+    // * 这里 需要强制使用 !== false 因为，configFile 可以为空字符串 或者 undefined ,这代表着默认 configFile 的位置
     if (configFile !== false) {
         const loadedResult = await loadConfigFromFile(configEnv, configFile, config.root)
         if (loadedResult) {
@@ -229,6 +229,25 @@ export async function resolveConfig(
     )
     config.root = resolvedRoot
 
+    // * 获取根目录的包路径
+    const pkgPath = lookupFile(resolvedRoot, ['package.json'], {
+        pathOnly: true
+    })
+
+    // * 预构建构建 缓存的路径
+    const cacheDir = config.cacheDir
+        ? path.resolve(resolvedRoot, config.cacheDir)
+        : pkgPath
+            // * 如果 有 package.json ，则缓存到 node_modules 中
+            ? path.join(path.dirname(pkgPath), 'node_modules/.m-vite')
+            // * 没有的话 则 缓存路径为 项目根目录
+            : path.join(resolvedRoot, '.m-vite')
+    // * 如果没有这个目录，则创建一个
+    if (!existsSync(cacheDir)) {
+        promises.mkdir(cacheDir)
+    }
+
+    
     return config
 }
 

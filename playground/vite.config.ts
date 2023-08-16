@@ -1,5 +1,11 @@
-// import { defineConfig } from 'mini-vite'
+import { defineConfig, startDevServer } from 'mini-vite'
 
-export default {
+export default defineConfig({
     clearScreen: false,
-}
+    css: {},
+    resolve: {
+        alias: {
+            '@': './src'
+        }
+    }
+})
