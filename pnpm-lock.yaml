@@ -69,6 +69,9 @@ devDependencies:
   '@types/ws':
     specifier: ^8.5.3
     version: 8.5.5
+  acorn:
+    specifier: ^8.10.0
+    version: 8.10.0
   esbuild-darwin-arm64:
     specifier: ^0.14.38
     version: 0.14.38
