@@ -49,7 +49,7 @@ export async function startDevServer(inlineConfig: InlineConfig) {
   const startTime = Date.now()
 
   const plugins = resolvePlugins()
-  const pluginContainer = createPluginContainer({ plugins })
+  const pluginContainer = await createPluginContainer({ plugins })
   const moduleGraph = new ModuleGraph(url => pluginContainer.resolveId(url))
 
   const watcher = chokidar.watch(root, {
