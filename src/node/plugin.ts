@@ -1,13 +1,13 @@
-import { LoadResult, PartialResolvedId, SourceDescription } from "rollup"
-import { ServerContext } from "./server"
-import { UserConfig, ConfigEnv, ResolvedConfig } from './config'
+import type { LoadResult, PartialResolvedId, SourceDescription } from 'rollup'
+import type { ServerContext } from './server'
+import type { ConfigEnv, ResolvedConfig, UserConfig } from './config'
 
 export type PluginOption = Plugin
-  | false
-  | null
-  | undefined
-  | PluginOption[]
-  | Promise<Plugin | false | null | undefined | PluginOption[]>
+| false
+| null
+| undefined
+| PluginOption[]
+| Promise<Plugin | false | null | undefined | PluginOption[]>
 
 export type ServerHook = (
   server: ServerContext
@@ -15,10 +15,10 @@ export type ServerHook = (
 
 // 只实现以下这几个钩子
 export interface Plugin {
-  name: string,
-  enforce?: "pre" | "post"
+  name: string
+  enforce?: 'pre' | 'post'
 
-  apply?: "serve" | "build" | ((config: UserConfig, env: ConfigEnv) => boolean)
+  apply?: 'serve' | 'build' | ((config: UserConfig, env: ConfigEnv) => boolean)
 
   config?: (
     config: UserConfig,
@@ -38,4 +38,3 @@ export interface Plugin {
   ) => Promise<SourceDescription | null> | SourceDescription | null
   transformIndexHtml?: (raw: string) => Promise<string> | string
 }
-
