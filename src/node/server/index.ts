@@ -10,7 +10,6 @@ import type { FSWatcher } from 'chokidar'
 import chokidar from 'chokidar'
 
 import { optimize } from '../optimizer'
-import { resolvePlugins } from '../plugins'
 import type { Plugin } from '../plugin'
 import type { PluginContainer } from '../pluginContainer'
 import { createPluginContainer } from '../pluginContainer'
@@ -43,13 +42,13 @@ export async function startDevServer(inlineConfig: InlineConfig) {
 
   const resolvedConfig = await resolveConfig(inlineConfig, 'serve', 'development')
   console.log(resolvedConfig)
+  const plugins = resolvedConfig.plugins as Plugin[]
 
   const app = connect()
   const root = process.cwd()
   const startTime = Date.now()
 
-  const plugins = resolvePlugins()
-  const pluginContainer = await createPluginContainer({ plugins })
+  const pluginContainer = await createPluginContainer(resolvedConfig)
   const moduleGraph = new ModuleGraph(url => pluginContainer.resolveId(url))
 
   const watcher = chokidar.watch(root, {

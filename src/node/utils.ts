@@ -91,3 +91,17 @@ export async function asyncFlatten<T>(arr: T[]): Promise<T[]> {
   while (arr.some((v: any) => v?.then))
   return arr
 }
+
+// 判断当前 alias 是否需要替换
+export function matches(pattern: string | RegExp, importee: string) {
+  if (pattern instanceof RegExp)
+    return pattern.test(importee)
+
+  if (importee.length < pattern.length)
+    return false
+
+  if (importee === pattern)
+    return true
+
+  return importee.startsWith(`${pattern}/`)
+}

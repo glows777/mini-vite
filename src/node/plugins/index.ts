@@ -5,14 +5,18 @@ import { importAnalysisPlugin } from './importAnalysis'
 import { cssPlugin } from './css'
 import { assertPlugin } from './assert'
 import { clientInjectPlugin } from './clientInject'
+import { aliasPlugin } from './aliasPlugin'
 
-export function resolvePlugins(): Plugin[] {
-  return [
-    clientInjectPlugin(),
-    resolvePlugin(),
-    esbuildTransformPlugin(),
-    importAnalysisPlugin(),
-    cssPlugin(),
-    assertPlugin(),
-  ]
+export {
+  resolvePlugin,
+  esbuildTransformPlugin,
+  importAnalysisPlugin,
+  cssPlugin,
+  assertPlugin,
+  clientInjectPlugin,
+  aliasPlugin,
+}
+
+export function resolvePlugins(plugins: Plugin[]): Plugin[] {
+  return plugins
 }
