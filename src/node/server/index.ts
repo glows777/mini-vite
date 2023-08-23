@@ -1,6 +1,7 @@
 import process from 'node:process'
 import path from 'node:path'
 import { createServer } from 'node:net'
+import http from 'node:http'
 
 // connect 是一个具有中间件机制的轻量级 Node.js 框架。
 // 既可以单独作为服务器，也可以接入到任何具有中间件机制的框架中，如 Koa、Express
@@ -20,7 +21,7 @@ import { createWebSocketServer } from '../ws'
 import { bindingHMREvents } from '../hmr'
 
 import type { InlineConfig } from '../config'
-import { resolveConfig } from '../config'
+import { mergeConfig, resolveConfig } from '../config'
 import { resolveChokidarOptions } from '../utils'
 import { indexHtmlMiddleware } from './middlewares/indexHtml'
 import { transformMiddleware } from './middlewares/transform'
@@ -38,7 +39,7 @@ function portIsOccupied(port: number) {
       resolve(isOccupied)
     })
 
-    server.on('error', (error: any) => {
+    server.on('error', (error: Error & { code?: string }) => {
       // * 端口 被占用
       if (error.code === 'EADDRINUSE') {
         isOccupied = true
@@ -59,6 +60,9 @@ export interface ServerContext {
     close: () => void
   }
   watcher: FSWatcher
+  httpServer: http.Server | null
+  restart(forceOptimize?: boolean): Promise<void>
+  close(): Promise<void>
 }
 
 export async function startDevServer(inlineConfig: InlineConfig) {
@@ -68,11 +72,12 @@ export async function startDevServer(inlineConfig: InlineConfig) {
   const resolvedConfig = await resolveConfig(inlineConfig, 'serve', 'development')
   // console.log(resolvedConfig)
   const plugins = resolvedConfig.plugins as Plugin[]
-  const serverConfig = resolvedConfig.server || {}
-
   const app = connect()
   const root = resolvedConfig.root || process.cwd()
   const startTime = Date.now()
+  const ws = createWebSocketServer(app)
+  const server = http.createServer(app)
+  const serverConfig = resolvedConfig.server || {}
 
   // * 解析 watch 选项
   const resolvedWatchOptions = resolveChokidarOptions({
@@ -100,16 +105,46 @@ export async function startDevServer(inlineConfig: InlineConfig) {
 
   const pluginContainer = await createPluginContainer(resolvedConfig)
   const moduleGraph = new ModuleGraph(url => pluginContainer.resolveId(url))
-  const ws = createWebSocketServer(app)
   const watcher = chokidar.watch(path.resolve(root), resolvedWatchOptions)
+
+  const restart = async (forceOptimize: boolean) => {
+    let inlineConfig = resolvedConfig.inlineConfig
+    inlineConfig.clearScreen = false
+
+    // 是否需要 重新构建，是的话，修改配置文件
+    if (forceOptimize) {
+      inlineConfig = mergeConfig(inlineConfig, {
+        optimizeDeps: {
+          force: true,
+        },
+      })
+    }
+    // * 关闭 之前的 服务器
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    await serverContext.close()
+
+    // * 重启 服务器
+    await startDevServer(inlineConfig)
+  }
+  const close = async () => {
+    await Promise.all([
+      watcher.close(),
+      ws.close(),
+      server.close(),
+    ])
+  }
+
   const serverContext: ServerContext = {
-    root: process.cwd(),
+    root,
     pluginContainer,
     app,
     plugins,
     moduleGraph,
     ws,
     watcher,
+    httpServer: server,
+    restart,
+    close,
   }
   bindingHMREvents(serverContext)
 
@@ -120,9 +155,8 @@ export async function startDevServer(inlineConfig: InlineConfig) {
   app.use(transformMiddleware(serverContext))
   app.use(indexHtmlMiddleware(serverContext))
   app.use(staticMiddleware(serverContext.root))
-  app.listen(defaultPort, async () => {
-    await optimize(root)
-
+  await optimize(root, resolvedConfig)
+  server.listen(defaultPort, () => {
     console.log(
       green('🚀 No-Bundle 服务已经成功启动!'),
             `耗时: ${Date.now() - startTime}ms`,

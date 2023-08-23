@@ -608,7 +608,7 @@ async function loadConfigFromBundledFile(
   }
 }
 
-function mergeConfig(
+export function mergeConfig(
   defaults: Record<string, any>,
   overrides: Record<string, any>,
 ) {

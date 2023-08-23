@@ -3,10 +3,11 @@ import path from 'node:path'
 import { build } from 'esbuild'
 import { green } from 'picocolors'
 import { PRE_BUNDLE_DIR } from '../constants'
+import type { ResolvedConfig } from '../config'
 import { scanPlugin } from './scanPlugin'
 import { preBundlePlugin } from './preBundlePlugin'
 
-export async function optimize(root: string) {
+export async function optimize(root: string, config: ResolvedConfig) {
   // 1. 确定入口
   // * 为方便开发，这里直接约定为 src 目录下的 main.tsx 文件
   const entry = path.resolve(root, 'src/main.tsx')
