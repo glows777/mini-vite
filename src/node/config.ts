@@ -31,7 +31,7 @@ import {
 import type { PluginContainer } from './pluginContainer'
 import { createPluginContainer } from './pluginContainer'
 import { aliasPlugin } from './plugins/aliasPlugin'
-import { clientInjectPlugin, cssPlugin, importAnalysisPlugin, resolvePlugin, resolvePlugins } from './plugins'
+import { assertPlugin, clientInjectPlugin, cssPlugin, esbuildTransformPlugin, importAnalysisPlugin, resolvePlugin, resolvePlugins } from './plugins'
 
 type ChooseType<T> = T extends Promise<infer R> ? R : null
 
@@ -363,9 +363,11 @@ export async function resolveConfig(
     aliasPlugin(resolved),
     ...(isBuild ? [] : [clientInjectPlugin()]),
     resolvePlugin(),
+    esbuildTransformPlugin(),
     cssPlugin(),
     // todo add buildImportAnalysisPlugin
     ...(isBuild ? [importAnalysisPlugin()] : [importAnalysisPlugin()]),
+    assertPlugin(),
   ])
 
   resolved.plugins = resolvedPlugins

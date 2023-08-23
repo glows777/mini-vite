@@ -2,7 +2,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { existsSync, readFileSync, statSync } from 'fs-extra'
 
+import type { ChokidarOptions } from 'rollup'
 import { CLIENT_PUBLIC_PATH, HASH_RE, JS_TYPES_RE, QEURY_RE } from './constants'
+import type { WatchOptions } from './config'
 
 const INTERNAL_LIST = [CLIENT_PUBLIC_PATH, '/@react-refresh']
 
@@ -104,4 +106,23 @@ export function matches(pattern: string | RegExp, importee: string) {
     return true
 
   return importee.startsWith(`${pattern}/`)
+}
+
+export function resolveChokidarOptions(
+  options: WatchOptions | ChokidarOptions,
+) {
+  const { ignored = [], ...otherOptions } = options ?? {}
+  const resolvedWatchOptions = {
+    // 部分文件如 node_modules .git 等不需要被监听
+    ignored: [
+      '**/.git/**',
+      '**/node_modules/**',
+      '**/dist/**',
+      ...(isArray(ignored) ? ignored : [ignored]),
+    ],
+    ignoreInitial: true,
+    ignorePermissionErrors: true,
+    ...otherOptions,
+  }
+  return resolvedWatchOptions
 }
