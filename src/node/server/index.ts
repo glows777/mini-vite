@@ -152,8 +152,8 @@ export async function startDevServer(inlineConfig: InlineConfig) {
     if (plugin.configureServer)
       await plugin.configureServer(serverContext)
   }
-  app.use(transformMiddleware(serverContext))
   app.use(indexHtmlMiddleware(serverContext))
+  app.use(transformMiddleware(serverContext))
   app.use(staticMiddleware(serverContext.root))
   await optimize(root, resolvedConfig)
   server.listen(defaultPort, () => {
