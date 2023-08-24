@@ -3,6 +3,7 @@ import path from 'node:path'
 import { existsSync, readFileSync, statSync } from 'fs-extra'
 
 import type { ChokidarOptions } from 'rollup'
+import { bgRed } from 'picocolors'
 import { CLIENT_PUBLIC_PATH, HASH_RE, JS_TYPES_RE, QEURY_RE } from './constants'
 import type { WatchOptions } from './config'
 
@@ -125,4 +126,70 @@ export function resolveChokidarOptions(
     ...otherOptions,
   }
   return resolvedWatchOptions
+}
+
+export interface ErrorOpts {
+  beforeStr?: string
+  afterStr?: string
+}
+export function error(err: string, opts?: ErrorOpts) {
+  let str = ''
+
+  const { beforeStr, afterStr } = opts || {}
+  if (beforeStr)
+    str += beforeStr
+
+  str += `❌ ${bgRed(err)}`
+  if (afterStr)
+    str += afterStr
+
+  console.log(str)
+}
+
+// 获取 第三方包 路径
+export function getPkgModulePath(moduleName: string, root: string) {
+  // * 处理 react/jsx-runtime 这种情况
+  if (moduleName.includes('/')) {
+    let ext = ''
+    const resolvedRoot = path.resolve(root, 'node_modules', moduleName)
+
+    // 如果不是 .js 或者 .ts 结尾，则需要添加
+    if (!resolvedRoot.endsWith('.ts') && !resolvedRoot.endsWith('.js')) {
+      if (existsSync(`${resolvedRoot}.js`))
+        ext = '.js'
+
+      else if (existsSync(`${resolvedRoot}.ts`))
+        ext = '.ts'
+    }
+
+    const normalizeRoot = normalizePath(resolvedRoot + ext)
+    return normalizeRoot
+  }
+
+  // * 处理 react redux 这种情况
+  const pkg = lookupFile(root, [`node_modules/${moduleName}/packages.json`])
+  if (pkg) {
+    const json = JSON.parse(pkg)
+    const main = json.main.endsWith('.js') ? json.main : `${json.main}.js`
+    const packageRoot = main || 'index.js'
+    const resolvedRoot = path.resolve(
+      root,
+      'node_modules',
+      moduleName,
+      packageRoot,
+    )
+
+    const normalizedRoot = normalizePath(resolvedRoot)
+    return normalizedRoot
+  }
+  else {
+    throw new Error(bgRed(`😠 > can not find module ${moduleName}`))
+  }
+}
+
+export function flattenId(id: string) {
+  return id
+    .replace(/[\/:]/g, '_')
+    .replace(/[\.]/g, '__')
+    .replace(/(\s*>\s*)/g, '___')
 }
