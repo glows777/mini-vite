@@ -14,11 +14,8 @@ export function clientInjectPlugin(): Plugin {
       serverContext = s
     },
     resolveId(id) {
-      if (id === CLIENT_PUBLIC_PATH) {
-        return {
-          id,
-        }
-      }
+      if (id === CLIENT_PUBLIC_PATH)
+        return Promise.resolve({ id })
       return null
     },
     async load(id) {

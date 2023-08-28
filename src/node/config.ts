@@ -310,7 +310,7 @@ export async function resolveConfig(
   const createResolver = () => {
     let aliasContainer: PluginContainer
     // resolve 函数
-    return async (id: string, importer: string) => {
+    return async (id: string, importer?: string) => {
       const container = aliasContainer || (
         aliasContainer = await createPluginContainer({
           ...resolved,

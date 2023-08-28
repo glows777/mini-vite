@@ -8,8 +8,6 @@ export async function scanDeps(
   config: ResolvedConfig,
   entryPoints: string[],
 ) {
-  const depStr = ''
-
   if (!config.optimizeDeps.exclude)
     config.optimizeDeps.exclude = []
 

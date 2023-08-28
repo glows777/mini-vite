@@ -5,7 +5,7 @@ import { existsSync, promises } from 'fs-extra'
 import { parse } from 'es-module-lexer'
 import { BARE_IMPORT_RE, EXTERNAL_TYPES, HTMLTypesRE, SRCRE, ScriptModuleRE, ScriptRE, TYPERE } from '../constants'
 import type { ResolvedConfig } from '../config'
-import { error } from '../utils'
+import { error, flattenId, getPkgModulePath } from '../utils'
 
 export function scanPlugin(
   // 依赖映射表 { 'react/jsx-runtime': '实际入口路径' }
@@ -43,9 +43,10 @@ export function scanPlugin(
 
           let contents = ''
 
+          // * 读取 html 文件
           const htmlContent = await promises.readFile(htmlPath, 'utf-8')
 
-          // * 解析 html 文件，读取 <script type="module" src="xxxx"></script> 中 src 指向的 xxx 的文件内容
+          // * 解析 html 文件，读取 <script type="module" src="xxxx"></script> 中 src 指向的 xxx，并转为 import 语句嵌入
           // * 兜底：
           // * 没有 src 属性，则读取 <script type="module">xxx</script> 中 xxx 的内容
           // * 没有 module 属性的话，不做解析
@@ -117,12 +118,34 @@ export function scanPlugin(
 
       build.onResolve(
         { filter: BARE_IMPORT_RE },
-        (resolveInfo) => {
+        async (resolveInfo) => {
           const { path: id } = resolveInfo
+          let external = false
 
-          // 推入 deps 集合中
-          // deps.add(id)
+          if (config.optimizeDeps.exclude)
+            external = !!config.optimizeDeps.exclude.includes(id)
 
+          // * 非 external 则需要依赖扫描，记录
+          if (!external && !(await shouldExternal(config, resolveInfo.path))) {
+            const root = config.root
+            // * 只有 不存在这个 依赖，才需要解析，记录
+            if (!deps[resolveInfo.path] && existsSync(path.resolve(root, 'node_modules'))) {
+              const normalizedRoot = getPkgModulePath(resolveInfo.path, config.root)
+              if (normalizedRoot) {
+                // * 推入 deps 集合中
+                deps[resolveInfo.path] = normalizedRoot
+                flatIdToImports[flattenId(resolveInfo.path)] = normalizedRoot
+              }
+            }
+          }
+          // esbuild 读取到 jsx tsx 文件自动打包 react/jsx-runtime 需要添加到 react 依赖中
+          if (resolveInfo.path === 'react/jsx-runtime') {
+            const normalizedRoot = getPkgModulePath('react', config.root)
+            if (normalizedRoot) {
+              deps.react = normalizedRoot
+              flatIdToImports.react = normalizedRoot
+            }
+          }
           return {
             path: id,
             external: true,
@@ -130,5 +153,27 @@ export function scanPlugin(
         },
       )
     },
+  }
+}
+
+async function shouldExternal(config: ResolvedConfig, path: string) {
+  // * 如果是 虚拟模块: 'virtual:module' 则需要跳过
+  if (path.startsWith('virtual'))
+    return true
+
+  // * 如果 用户配置了 alias 则需要进行匹配
+  const alias = config.resolve?.alias
+  if (alias) {
+    const resolver = config.createResolver()
+    const resolvedId = await resolver(path)
+
+    // * 匹配不到 alias 则排除
+    if (resolvedId !== path) {
+      return {
+        path,
+        external: true,
+      }
+    }
+    return false
   }
 }
