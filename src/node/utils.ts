@@ -1,11 +1,13 @@
 import os from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
+import crypto from 'node:crypto'
 import { existsSync, readFileSync, statSync } from 'fs-extra'
 
 import type { ChokidarOptions } from 'rollup'
 import { bgRed } from 'picocolors'
 import { CLIENT_PUBLIC_PATH, HASH_RE, JS_TYPES_RE, QEURY_RE } from './constants'
-import type { WatchOptions } from './config'
+import type { ResolvedConfig, WatchOptions } from './config'
 
 const INTERNAL_LIST = [CLIENT_PUBLIC_PATH, '/@react-refresh']
 
@@ -166,8 +168,8 @@ export function getPkgModulePath(moduleName: string, root: string) {
     return normalizeRoot
   }
 
-  // * 处理 react redux 这种情况
-  const pkg = lookupFile(root, [`node_modules/${moduleName}/packages.json`])
+  // * 处理 react vue 这种情况
+  const pkg = lookupFile(root, [`node_modules/${moduleName}/package.json`])
   if (pkg) {
     const json = JSON.parse(pkg)
     const main = json.main.endsWith('.js') ? json.main : `${json.main}.js`
@@ -192,4 +194,40 @@ export function flattenId(id: string) {
     .replace(/[\/:]/g, '_')
     .replace(/[\.]/g, '__')
     .replace(/(\s*>\s*)/g, '___')
+}
+
+// * 通过合并 package-lock.json 和 config 文件得到 hash 值
+const lockfileFormats = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
+export function getDepHash(config: ResolvedConfig) {
+  const optimizeDeps = config.optimizeDeps
+  let content = lookupFile(config.root, lockfileFormats) || ''
+  content += JSON.stringify({
+    mode: process.env.NODE_ENV || config.mode,
+    root: config.root,
+    resolve: config.resolve,
+    buildTarget: config.build?.target,
+    plugins: (config.plugins as Plugin[]).map(p => p.name),
+    optimizeDeps: {
+      include: optimizeDeps?.include,
+      exclude: optimizeDeps?.exclude,
+      esbuildOptions: {
+        ...optimizeDeps?.esbuildOptions,
+        plugins: optimizeDeps?.esbuildOptions?.plugins?.map(p => p.name),
+      },
+    },
+  },
+  (_, v) => {
+    if (typeof v === 'function' || v instanceof RegExp)
+      return v.toString()
+    return v
+  })
+  return getHash(content)
+}
+
+export function getHash(content: string) {
+  return crypto
+    .createHash('sha256')
+    .update(content)
+    .digest('hex')
+    .substring(0, 8)
 }
