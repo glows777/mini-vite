@@ -54,7 +54,7 @@ export async function optimize(root: string, config: ResolvedConfig) {
     // 2. 从入口处扫描依赖，收集依赖信息
     const [deps, flatIdToImports] = await scanDeps(config, entryPoints)
 
+    // 3. 预构建依赖
     await preBundle(deps, flatIdToImports, config)
-    //   // 3. 预构建依赖
   }
 }

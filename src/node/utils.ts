@@ -1,7 +1,7 @@
 import os from 'node:os'
 import path from 'node:path'
-import process from 'node:process'
 import crypto from 'node:crypto'
+import process from 'node:process'
 import { existsSync, readFileSync, statSync } from 'fs-extra'
 
 import type { ChokidarOptions } from 'rollup'
@@ -198,6 +198,7 @@ export function flattenId(id: string) {
 
 // * 通过合并 package-lock.json 和 config 文件得到 hash 值
 const lockfileFormats = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml']
+
 export function getDepHash(config: ResolvedConfig) {
   const optimizeDeps = config.optimizeDeps
   let content = lookupFile(config.root, lockfileFormats) || ''
@@ -220,7 +221,8 @@ export function getDepHash(config: ResolvedConfig) {
     if (typeof v === 'function' || v instanceof RegExp)
       return v.toString()
     return v
-  })
+  },
+  )
   return getHash(content)
 }
 
@@ -230,4 +232,12 @@ export function getHash(content: string) {
     .update(content)
     .digest('hex')
     .substring(0, 8)
+}
+
+export function getBrowserHash(
+  hash: string,
+  deps: Record<string, string>,
+  timestamp: string = '',
+) {
+  return getHash(hash + JSON.stringify(deps) + timestamp)
 }

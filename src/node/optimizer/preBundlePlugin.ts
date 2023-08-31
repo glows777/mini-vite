@@ -1,5 +1,4 @@
 import path from 'node:path'
-import process from 'node:process'
 
 import type { Loader, Plugin } from 'esbuild'
 
@@ -7,20 +6,23 @@ import type { Loader, Plugin } from 'esbuild'
 import { init, parse } from 'es-module-lexer'
 
 // 一个实现了 node 路径解析算法的库
-import resolve from 'resolve'
 
 // 一个更加好用的文件操作库
-import fs from 'fs-extra'
+import { promises } from 'fs-extra'
 
 // 用来开发打印 debug 日志的库
 import createDebug from 'debug'
 
-import { normalizePath } from '../utils'
 import { BARE_IMPORT_RE } from '../constants'
+import type { ResolvedConfig } from '../config'
 
 const debug = createDebug('dev')
 
-export function preBundlePlugin(deps: Set<string>): Plugin {
+export function preBundlePlugin(
+  deps: Record<string, string>,
+  flatIdToImports: Record<string, string>,
+  config: ResolvedConfig,
+): Plugin {
   return {
     name: 'esbuild:pre-bundle',
     setup(build) {
@@ -32,7 +34,7 @@ export function preBundlePlugin(deps: Set<string>): Plugin {
           const isEntry = !importer
 
           // 命中 需要预编译的 依赖
-          if (deps.has(id)) {
+          if (flatIdToImports[id]) {
             // 若为入口，则标记 dep 的 namespace
             return isEntry
               ? {
@@ -40,10 +42,10 @@ export function preBundlePlugin(deps: Set<string>): Plugin {
                   namespace: 'dep',
                 }
               : {
-                  // 因为走到 onResolve 了，所以 id 是bare import 的路径（相对路径），
-                  // 所以这里的 path 就是要绝对路径了
-                  // 所以要 resolve 一下，拿到绝对路径
-                  path: resolve.sync(id, { basedir: process.cwd() }),
+                  // * 因为走到 onResolve 了，所以 id 是 bare import 的路径（相对路径），
+                  // * 这里的 path 是要绝对路径
+                  // * 所以要 resolve 一下，拿到绝对路径
+                  path: flatIdToImports[id],
                 }
           }
         },
@@ -57,13 +59,13 @@ export function preBundlePlugin(deps: Set<string>): Plugin {
         async (loadInfo) => {
           await init
           const id = loadInfo.path
-          const root = process.cwd()
-          const entryPath = normalizePath(resolve.sync(id, { basedir: root }))
-          const code = await fs.readFile(entryPath, 'utf-8')
+          const root = config.root
+          const entryPath = flatIdToImports[id]
+          const code = await promises.readFile(entryPath, 'utf-8')
 
           const [_imports, _exports] = await parse(code)
 
-          const proxyModule = []
+          const proxyModule: string[] = []
 
           // cjs 格式
           if (!_imports.length && !_exports.length) {

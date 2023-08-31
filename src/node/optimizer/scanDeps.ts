@@ -8,9 +8,7 @@ export async function scanDeps(
   config: ResolvedConfig,
   entryPoints: string[],
 ) {
-  if (!config.optimizeDeps.exclude)
-    config.optimizeDeps.exclude = []
-
+  const excludes = config.optimizeDeps.exclude || []
   const deps: Record<string, string> = {}
   const flatIdToImports: Record<string, string> = {}
 
@@ -26,7 +24,7 @@ export async function scanDeps(
       write: false,
       plugins: [...plugins, scanPlugin(deps, flatIdToImports, config)],
       // * exclude 不需要的进行预构建的依赖
-      external: [...config.optimizeDeps.exclude],
+      external: [...excludes],
       ...esbuildOptions,
     })
   }

@@ -42,7 +42,7 @@ export function loadCachedDepOptimizedMetadata(config: ResolvedConfig) {
     catch (error) {
     }
     // * 计算当前配置元信息的 hash 并与上一次的配置元信息进行对比，相同则不会触发预构建
-    // * 哈希与 package-lock.json 或 yarn.loc k或 pnpm-lock.yaml，config 有关
+    // * 哈希与 package-lock.json 或 yarn.lock 或 pnpm-lock.yaml，config 有关
     // * 也就是说，他们发生变化，会再次触发预构建
     if (cachedMetaData && cachedMetaData.hash === getDepHash(config)) {
       console.log(green('😎 > Hash 与之前预构建的 Hash 相同，不需要再次预构建'))
