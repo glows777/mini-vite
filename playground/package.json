@@ -6,6 +6,8 @@
     "dev": "mini-vite"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.197",
+    "lodash": "^4.17.21",
     "react": "17",
     "react-dom": "17"
   },

@@ -1,5 +1,5 @@
-import { build } from 'esbuild'
 import { green } from 'picocolors'
+import { build } from 'esbuild'
 import type { ResolvedConfig } from '../config'
 import { error, flattenId, getPkgModulePath } from '../utils'
 import { scanPlugin } from './scanPlugin'
@@ -45,7 +45,7 @@ export async function scanDeps(
   }
 
   console.log(
-    `${green('需要预构建的依赖')}: \n${Object.values(deps)
+    `${green('需要预构建的依赖')}: \n${Object.keys(deps)
         .map(green)
         .map(item => `  ${item}`)
         .join('\n')

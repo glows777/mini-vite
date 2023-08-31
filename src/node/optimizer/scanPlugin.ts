@@ -38,7 +38,7 @@ export function scanPlugin(
             htmlPath = path.resolve(config.root, resolveInfo.path)
 
           // * 如果 resolve 后，仍然找不到 该路径，则直接报错
-          if (existsSync(htmlPath))
+          if (!existsSync(htmlPath))
             error(`pluginError: 插件 [scanPlugin] 找不到'${htmlPath}', 根目录为 ${config.root}`)
 
           let contents = ''
@@ -124,9 +124,9 @@ export function scanPlugin(
 
           if (config.optimizeDeps.exclude)
             external = !!config.optimizeDeps.exclude.includes(id)
-
           // * 非 external 则需要依赖扫描，记录
           if (!external && !(await shouldExternal(config, resolveInfo.path))) {
+            // console.log('==================', id)
             const root = config.root
             // * 只有 不存在这个 依赖，才需要解析，记录
             if (!deps[resolveInfo.path] && existsSync(path.resolve(root, 'node_modules'))) {
@@ -138,7 +138,7 @@ export function scanPlugin(
               }
             }
           }
-          // esbuild 读取到 jsx tsx 文件自动打包 react/jsx-runtime 需要添加到 react 依赖中
+          // * esbuild 读取到 jsx tsx 文件自动打包 react/jsx-runtime 需要添加到 react 依赖中
           if (resolveInfo.path === 'react/jsx-runtime') {
             const normalizedRoot = getPkgModulePath('react', config.root)
             if (normalizedRoot) {
@@ -160,7 +160,6 @@ async function shouldExternal(config: ResolvedConfig, path: string) {
   // * 如果是 虚拟模块: 'virtual:module' 则需要跳过
   if (path.startsWith('virtual'))
     return true
-
   // * 如果 用户配置了 alias 则需要进行匹配
   const alias = config.resolve?.alias
   if (alias) {

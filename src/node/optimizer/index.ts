@@ -1,11 +1,10 @@
 import path from 'node:path'
 
-import { build } from 'esbuild'
-import { PRE_BUNDLE_DIR } from '../constants'
 import type { ResolvedConfig } from '../config'
 import { isArray, isObject } from '../utils'
-import { preBundlePlugin } from './preBundlePlugin'
+import { loadCachedDepOptimizedMetadata } from './loadCached'
 import { scanDeps } from './scanDeps'
+import { preBundle } from './preBundle'
 
 export async function optimize(root: string, config: ResolvedConfig) {
   // 1. 确定入口
@@ -49,37 +48,13 @@ export async function optimize(root: string, config: ResolvedConfig) {
       Object.values(input).forEach(p => entryPoints.push(path.resolve(root, p)))
   }
 
-  // 存放 收集的 依赖信息
-  const deps = new Set<string>()
-  const [deps2, flatIdToImports] = await scanDeps(config, entryPoints)
-  console.log(deps2, flatIdToImports)
+  const cachedMetaData = loadCachedDepOptimizedMetadata(config)
 
-  // 2. 从入口处扫描依赖，收集依赖信息
-  // await build({
-  //   entryPoints: [entry],
-  //   bundle: true,
-  //   // * 这里是关键 write 为 false，表示不写入磁盘
-  //   // * 这也是 为什么 同样是 调用 esbuild 的 bundle
-  //   // * 扫描依赖会比打包快
-  //   write: false,
-  //   plugins: [scanPlugin(deps)],
-  // })
-  // console.log(
-  //       `${green('需要预构建的依赖')}: \n${[...deps]
-  //           .map(green)
-  //           .map(item => `  ${item}`)
-  //           .join('\n')
-  //       }`,
-  // )
+  if (!cachedMetaData) {
+    // 2. 从入口处扫描依赖，收集依赖信息
+    const [deps, flatIdToImports] = await scanDeps(config, entryPoints)
 
-  // 3. 预构建依赖
-  await build({
-    entryPoints: [...deps],
-    write: true,
-    bundle: true,
-    format: 'esm',
-    splitting: true,
-    outdir: path.resolve(root, PRE_BUNDLE_DIR),
-    plugins: [preBundlePlugin(deps)],
-  })
+    await preBundle(deps, flatIdToImports, config)
+    //   // 3. 预构建依赖
+  }
 }

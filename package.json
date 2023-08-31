@@ -21,6 +21,7 @@
     "cac": "^6.7.12",
     "chokidar": "^3.5.3",
     "connect": "^3.7.0",
+    "crypto": "^1.0.1",
     "debug": "^4.3.4",
     "es-module-lexer": "^0.10.5",
     "esbuild": "^0.14.38",

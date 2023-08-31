@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
+import { debounce } from 'lodash'
 import logo from './logo.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const setCount2 = debounce(setCount)
 
   return (
     <div className="App">
@@ -11,7 +13,7 @@ function App() {
         <img className="App-logo" src={logo} alt="" />
         <p>Hello m-Vite + React</p>
         <p>
-          <button type="button" onClick={() => setCount(count => count + 1)}>
+          <button type="button" onClick={() => setCount2(count => count + 1)}>
             count is: {count}
           </button>
         </p>

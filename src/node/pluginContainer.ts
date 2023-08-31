@@ -53,10 +53,10 @@ export async function createPluginContainer(config: ResolvedConfig): Promise<Plu
       this._resolveSkips = null
     }
 
-    async resolve(id: string, importer?: string, options?: {
-      isEntry: boolean
+    async resolve(id: string, importer?: string, options: {
+      isEntry?: boolean
       skipSelf?: boolean
-    }) {
+    } = {}) {
       let skip: Set<Plugin> = new Set()
       if (options?.skipSelf && this._activePlugin) {
         // 保存上一次 已经跳过的插件
@@ -122,7 +122,7 @@ export async function createPluginContainer(config: ResolvedConfig): Promise<Plu
           return Object.assign(resolvedIdResult, result)
         }
       }
-      return null
+      return resolvedIdResult
     },
     async load(id) {
       const ctx = new Context()
