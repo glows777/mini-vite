@@ -241,3 +241,24 @@ export function getBrowserHash(
 ) {
   return getHash(hash + JSON.stringify(deps) + timestamp)
 }
+
+export function isVirtual(str: string) {
+  return str.startsWith('/virtual')
+}
+
+// * 判断当前系统是不是苹果系统
+export function isOs() {
+  return process.platform === 'darwin'
+}
+
+export function osPath(path: string) {
+  if (isOs())
+    return path
+
+  return path.slice(2)
+}
+
+// * 去重
+export function unique(arr: any[]) {
+  return Array.from(new Set(arr))
+}

@@ -1,6 +1,8 @@
 import type { CustomPluginOptions, LoadResult, PluginContext, ResolveIdResult, SourceDescription } from 'rollup'
 import type { ServerContext } from './server'
 import type { ConfigEnv, ResolvedConfig, UserConfig } from './config'
+import type { HmrContext } from './hmr'
+import type { ModuleNode } from './ModuleGraph'
 
 export type PluginOption = Plugin
 | false
@@ -59,4 +61,8 @@ export interface Plugin {
     }
   ) => Promise<TransformResult> | TransformResult
   transformIndexHtml?: (raw: string) => Promise<string> | string
+  handleHotUpdate?: (
+    this: void,
+    hmrContext: HmrContext
+  ) => Array<ModuleNode> | void | Promise<Array<ModuleNode> | void>
 }

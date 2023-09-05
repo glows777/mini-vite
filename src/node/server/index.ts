@@ -20,7 +20,7 @@ import { ModuleGraph } from '../ModuleGraph'
 import { createWebSocketServer } from '../ws'
 import { bindingHMREvents } from '../hmr'
 
-import type { InlineConfig } from '../config'
+import type { InlineConfig, ResolvedConfig } from '../config'
 import { mergeConfig, resolveConfig } from '../config'
 import { resolveChokidarOptions } from '../utils'
 import { indexHtmlMiddleware } from './middlewares/indexHtml'
@@ -50,6 +50,7 @@ function portIsOccupied(port: number) {
 }
 
 export interface ServerContext {
+  config: ResolvedConfig
   root: string
   pluginContainer: PluginContainer
   app: connect.Server
@@ -70,7 +71,6 @@ export async function startDevServer(inlineConfig: InlineConfig) {
     console.clear()
 
   const resolvedConfig = await resolveConfig(inlineConfig, 'serve', 'development')
-  // console.log(resolvedConfig)
   const plugins = resolvedConfig.plugins as Plugin[]
   const app = connect()
   const root = resolvedConfig.root || process.cwd()
@@ -135,6 +135,7 @@ export async function startDevServer(inlineConfig: InlineConfig) {
   }
 
   const serverContext: ServerContext = {
+    config: resolvedConfig,
     root,
     pluginContainer,
     app,
