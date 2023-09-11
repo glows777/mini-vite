@@ -262,3 +262,129 @@ export function osPath(path: string) {
 export function unique(arr: any[]) {
   return Array.from(new Set(arr))
 }
+
+export function getRelativeRootPath(url: string, rootUrl: string) {
+  return `/${normalizePath(path.relative(rootUrl, url))}`
+}
+
+function error$1() {
+  const err = new Error(
+    'import.meta.hot.accept() can only accept string literals or an '
+      + 'Array of string literals.',
+  )
+  throw err
+}
+export interface AcceptedUrl {
+  url: string
+  start: number
+  end: number
+}
+export function lexAcceptedHmrDeps(
+  code: string,
+  start: number,
+  urls: Set<AcceptedUrl>,
+) {
+  let state = 0 /* inCall */
+  // the state can only be 2 levels deep so no need for a stack
+  let prevState = 0 /* inCall */
+  let currentDep = ''
+  function addDep(index: number) {
+    urls.add({
+      url: currentDep,
+      start: index - currentDep.length - 1,
+      end: index + 1,
+    })
+    currentDep = ''
+  }
+  for (let i = start; i < code.length; i++) {
+    const char = code.charAt(i)
+    switch (state) {
+      case 0 /* inCall */:
+      case 4 /* inArray */:
+        if (char === '\'') {
+          prevState = state
+          state = 1 /* inSingleQuoteString */
+        }
+        else if (char === '"') {
+          prevState = state
+          state = 2 /* inDoubleQuoteString */
+        }
+        else if (char === '`') {
+          prevState = state
+          state = 3 /* inTemplateString */
+        }
+        else if (/\s/.test(char)) {
+          continue
+        }
+        else {
+          if (state === 0 /* inCall */) {
+            if (char === '[')
+              state = 4 /* inArray */
+
+            else
+              return true
+          }
+          else if (state === 4 /* inArray */) {
+            if (char === ']')
+              return false
+
+            else if (char === ',')
+              continue
+
+            else
+              error$1()
+          }
+        }
+        break
+      case 1 /* inSingleQuoteString */:
+        if (char === '\'') {
+          addDep(i)
+          if (prevState === 0 /* inCall */)
+            return false
+
+          else
+            state = prevState
+        }
+        else {
+          currentDep += char
+        }
+        break
+      case 2 /* inDoubleQuoteString */:
+        if (char === '"') {
+          addDep(i)
+          if (prevState === 0 /* inCall */)
+            return false
+
+          else
+            state = prevState
+        }
+        else {
+          currentDep += char
+        }
+        break
+      case 3 /* inTemplateString */:
+        if (char === '`') {
+          addDep(i)
+          if (prevState === 0 /* inCall */)
+            return false
+
+          else
+            state = prevState
+        }
+        else if (char === '$' && code.charAt(i + 1) === '{') {
+          error$1()
+        }
+        else {
+          currentDep += char
+        }
+        break
+      default:
+        throw new Error('unknown import.meta.hot lexer state')
+    }
+  }
+  return false
+}
+
+export function isClient(str: string) {
+  return str === CLIENT_PUBLIC_PATH
+}

@@ -73,23 +73,26 @@ export class ModuleGraph {
     setIsSelfAccepting = true,
   ): Promise<ModuleNode> {
     const { url, resolvedId } = await this._resolve(rawUrl)
-
-    // 先检查 是否有缓存
-    if (this.urlToModuleMap.has(url))
-      return this.urlToModuleMap.get(url) as ModuleNode
+    let mod = this.idToModuleMap.get(resolvedId)
 
     // 无缓存 更新 urlToModuleMap 和 idToModuleMap
-    const mod = new ModuleNode(url, setIsSelfAccepting)
-    mod.id = resolvedId
-    this.urlToModuleMap.set(url, mod)
-    this.idToModuleMap.set(resolvedId, mod)
-    const file = (mod.file = cleanUrl(resolvedId))
-    let fileMappedModules = this.fileToModulesMap.get(file)
-    if (!fileMappedModules) {
-      fileMappedModules = new Set()
-      this.fileToModulesMap.set(file, fileMappedModules)
+    if (!mod) {
+      mod = new ModuleNode(url, setIsSelfAccepting)
+      mod.id = resolvedId
+      this.urlToModuleMap.set(url, mod)
+      this.idToModuleMap.set(resolvedId, mod)
+      const file = (mod.file = cleanUrl(resolvedId))
+      let fileMappedModules = this.fileToModulesMap.get(file)
+      if (!fileMappedModules) {
+        fileMappedModules = new Set()
+        this.fileToModulesMap.set(file, fileMappedModules)
+      }
+      fileMappedModules.add(mod)
     }
-    fileMappedModules.add(mod)
+    else if (!this.urlToModuleMap.has(url)) {
+      this.urlToModuleMap.set(url, mod)
+    }
+
     return mod
   }
 
@@ -149,7 +152,6 @@ export class ModuleGraph {
     // * 更新接受的 exports
     mod.acceptedHmrExports = acceptedExports
     mod.importedBindings = importedBindings
-
     // * 返回不再 import 的依赖
     return noLongerImported
   }

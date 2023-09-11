@@ -26,8 +26,7 @@ export function bindingHMREvents(serverContext: ServerContext) {
   const serverConfig = config.server || {}
 
   watcher.on('change', async (file) => {
-    moduleGraph.onFileChange(file)
-
+    moduleGraph.onFileChange(osPath(normalizePath(file)))
     if (serverConfig.hmr !== false) {
       try {
         await handleHMRUpdate(file, serverContext)
@@ -39,18 +38,6 @@ export function bindingHMREvents(serverContext: ServerContext) {
         })
       }
     }
-
-    // ws.send({
-    //   type: 'update',
-    //   updates: [
-    //     {
-    //       type: 'js-update',
-    //       timestamp: Date.now(),
-    //       path: `/${getShortName(file, root)}`,
-    //       acceptedPath: `/${getShortName(file, root)}`,
-    //     },
-    //   ],
-    // })
   })
 
   watcher.on('add', file => handleFileAddUnlink(file, serverContext))
@@ -62,6 +49,7 @@ export async function handleHMRUpdate(
   serverContext: ServerContext,
 ) {
   file = osPath(file)
+  // console.log(file)
   const { moduleGraph, ws, config, root } = serverContext
   const basename = path.basename(file)
   const shortFileName = getShortName(file, root)
@@ -83,7 +71,8 @@ export async function handleHMRUpdate(
   console.log(`✨${blue('[hmr]')} ${green(getShortName(file, root))} changed`)
 
   // * 处理 更新逻辑
-  const mods = moduleGraph.getModulesByFile(file)
+  const mods = moduleGraph.getModulesByFile(normalizePath(file))
+  // console.log(mods)
   const timestamp = Date.now()
   const hmrContext: HmrContext = {
     // * 热更新改变的文件
@@ -124,6 +113,7 @@ export async function handleHMRUpdate(
         data: `[m-vite]: '${shortFileName}' 不在项目引入的文件范围内，不进行热更新`,
       })
     }
+    return
   }
   updateModules(shortFileName, hmrContext.modules, timestamp, serverContext)
 }
@@ -142,14 +132,15 @@ export function updateModules(
   const invalidatedModules = new Set<ModuleNode>()
   let needFullReload = false
   for (const mod of modules) {
-    invalidate(mod, timestamp, invalidatedModules)
-    if (needFullReload)
-      continue
     // * 模块更新边界
     const boundaries = new Set<Boundary>()
     // * 收集 热边界
     const hasDeadEnd = propagateUpdate(mod, boundaries)
+    // console.log(boundaries)
 
+    invalidate(mod, timestamp, invalidatedModules)
+    if (needFullReload)
+      continue
     if (hasDeadEnd) {
       needFullReload = true
       continue
@@ -160,33 +151,33 @@ export function updateModules(
         type: `${boundary.type}-update`,
         timestamp,
         path: boundary.url,
-        acceptedVia: acceptedVia.url,
+        acceptedPath: acceptedVia.url,
       }))),
     )
-
-    if (needFullReload) {
-      console.log(`✨${blue('[hmr]')} ${green(`页面重载 ${file}`)}`)
-      ws.send({
-        type: 'full-reload',
-      })
-      return
-    }
-
-    if (updates.length === 0)
-      return
-
-    console.log(
-      updates.map(({ path }) =>
-        `✨${
-          blue('[hmr]')
-          }${green(`热模块更新 ${path}`)}`,
-      ).join('\n'),
-    )
-    ws.send({
-      type: 'update',
-      updates,
-    })
+    // console.log(boundaries)
   }
+  if (needFullReload) {
+    console.log(`✨${blue('[hmr]')} ${green(`页面重载 ${file}`)}`)
+    ws.send({
+      type: 'full-reload',
+    })
+    return
+  }
+
+  if (updates.length === 0)
+    return
+
+  console.log(
+    updates.map(({ path }) =>
+        `✨${
+          blue('[hmr] ')
+          }${green(`热模块更新 ${path}`)}`,
+    ).join('\n'),
+  )
+  ws.send({
+    type: 'update',
+    updates,
+  })
 }
 
 export function invalidate(
@@ -232,6 +223,7 @@ export function propagateUpdate(
         boundary: importer,
         acceptedVia: node,
       })
+      continue
     }
     // * 出现循环依赖 则直接刷新页面
     if (currentChain.includes(importer))
@@ -258,4 +250,18 @@ export async function handleFileAddUnlink(
       serverContext,
     )
   }
+}
+
+export function handlePrunedModules(
+  mods: Set<ModuleNode>,
+  { ws }: ServerContext,
+) {
+  const timestamp = Date.now()
+  mods.forEach((mod) => {
+    mod.lastHMRTimestamp = timestamp
+  })
+  ws.send({
+    type: 'prune',
+    paths: [...mods].map(mod => mod.url),
+  })
 }

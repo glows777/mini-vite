@@ -362,7 +362,7 @@ export async function resolveConfig(
   const resolvedPlugins = resolvePlugins([
     aliasPlugin(resolved),
     ...(isBuild ? [] : [clientInjectPlugin()]),
-    resolvePlugin(),
+    resolvePlugin(resolved),
     esbuildTransformPlugin(),
     cssPlugin(),
     // todo add buildImportAnalysisPlugin
