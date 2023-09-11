@@ -1,4 +1,23 @@
+interface HotCallback {
+  deps: string[]
+  fn: (modules: object[]) => void
+}
+interface HotModule {
+  id: string
+  callbacks: HotCallback[]
+}
+
 console.log('[m-vite] connecting...')
+
+// HMR 模块表
+const hotModulesMap = new Map<string, HotModule>()
+// 不再生效的 模块表
+const pruneMap = new Map<string, (data: any) => void | Promise<void>>()
+// 模块销毁的回调函数
+// eslint-disable-next-line @typescript-eslint/ban-types
+const disposeMap = new Map<string, Function>()
+// 获取热更新传递的数据
+const dataMap = new Map<string, any>()
 
 // 创建 客户端 WebSocket 实例
 // 其中的 __HMR_PORT__ 之后会被 no-bundle 服务编译成具体的端口号
@@ -23,36 +42,48 @@ async function handleMessage(payload: any) {
       console.log('[m-vite] connected')
 
       // 心跳检测
-      setInterval(() => socket.send('ping'), 1000)
+      setInterval(() => {
+        if (socket.readyState === socket.OPEN)
+          socket.send(JSON.stringify({ type: 'ping' }))
+      }, 1000)
       break
       // 具体模块更新
     case 'update':
       // 进行 具体模块更新
       payload.updates.forEach((update: Update) => {
         if (update.type === 'js-update')
-          fetchUpdate(update)
+          queueUpdate(fetchUpdate(update))
+        else if (update.type === 'css-update')
+          queueUpdate(fetchUpdate(update))
       })
+      break
+    case 'full-reload':
+      // * 刷新浏览器
+      document.location.reload()
+      console.log('[m-vite] connecting...')
+      break
+    case 'log':
+      console.log(payload.data)
+      break
+    case 'prune':
+      payload.paths.forEach((path: string) => {
+        const fn = pruneMap.get(path)
+        if (fn)
+          fn(dataMap.get(path))
+      })
+      break
+    default:
       break
   }
 }
 
-interface HotCallback {
-  deps: string[]
-  fn: (modules: object[]) => void
-}
-interface HotModule {
-  id: string
-  callbacks: HotCallback[]
-}
-
-// HMR 模块表
-const hotModulesMap = new Map<string, HotModule>()
-// 不再生效的 模块表
-const pruneMap = new Map<string, (data: any) => void | Promise<void>>()
-
 export function createHotContext(ownerPath: string) {
-  const mod = hotModulesMap.get(ownerPath)
+  // * ownerPath 是当前变动模块相对于根目录的路径 /src/App.tsx
 
+  if (!dataMap.has(ownerPath))
+    dataMap.set(ownerPath, {})
+
+  const mod = hotModulesMap.get(ownerPath)
   if (mod)
     mod.callbacks = []
 
@@ -71,51 +102,106 @@ export function createHotContext(ownerPath: string) {
   }
 
   return {
+    get data() {
+      return dataMap.get(ownerPath)
+    },
     accept(deps: any, callback: any) {
-      // 这里仅考虑接受自身模块更新的情况
       // import.meta.hot.accept()
-      if (typeof deps === 'function' || !deps) {
-        // @ts-expect-error callback  暂定为 any，所以 所有类型推导失效
-        acceptDeps([ownerPath], ([mod]) => deps && deps(mod))
-      }
+      if (typeof deps === 'function' || !deps)
+        acceptDeps([ownerPath], ([mod]: any) => deps && deps(mod))
+      else if (typeof deps === 'string')
+        acceptDeps([deps], (modules: any) => callback && callback(modules))
+      else if (Array.isArray(deps))
+        acceptDeps(deps, callback)
+      else
+        throw new Error('invalid hot.accept() usage')
     },
     // 模块不再生效的回调
     // import.meta.hot.prune(() => {})
     prune(cb: (data: any) => void) {
       pruneMap.set(ownerPath, cb)
     },
+    // 当某个模块更新 销毁的时候调用
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    dispose(cb: Function) {
+      disposeMap.set(ownerPath, cb)
+    },
+    // 强制刷新页面
+    invalidate() {
+      location.reload()
+    },
   }
 }
 
-export async function fetchUpdate({ path, timestamp }: Update) {
+export async function fetchUpdate({ path, timestamp, acceptedPath }: Update) {
   const mod = hotModulesMap.get(path)
   if (!mod)
-    return
+    return () => {}
 
   const moduleMap = new Map()
   const modulesToUpdate = new Set<string>()
-  modulesToUpdate.add(path)
+  const isSelfUpdate = path === acceptedPath
+  if (isSelfUpdate) {
+    // * 接受自身更新
+    modulesToUpdate.add(path)
+  }
+  else {
+    // * 接受子模块更新
+    for (const { deps } of mod.callbacks) {
+      deps.forEach((dep) => {
+        if (acceptedPath === dep)
+          modulesToUpdate.add(dep)
+      })
+    }
+  }
+
+  // * 整理需要执行的更新回调函数
+  const qualifiedCallbacks = mod.callbacks.filter(({ deps }) => {
+    return deps.some(dep => modulesToUpdate.has(dep))
+  })
+
   await Promise.all(
     Array.from(modulesToUpdate).map(async (dep) => {
+      const disposer = disposeMap.get(dep)
+      if (disposer)
+        await disposer(dataMap.get(dep))
+
       const [path, query] = dep.split('?')
       try {
-        // 通过动态 import 拉取最新模块
+        // * 通过动态 import 拉取最新模块
+        // * /src/a.ts?import&t=xxxx
         const newMod = await import(
-          `${path}?t=${timestamp}${query ? `&${query}` : ''}`
+          `${path}?import&t=${timestamp}${query ? `&${query}` : ''}`
         )
         moduleMap.set(dep, newMod)
       }
-      catch (error) {
-
+      catch (err) {
+        console.log(`拉取 ${path} 模块失败: ${err}`)
       }
     }),
   )
   return () => {
     // 拉取最新模块后 应执行更新回调
-    for (const { deps, fn } of mod.callbacks)
-      fn(deps.map((dep: any) => moduleMap.get(dep)))
+    for (const { deps, fn } of qualifiedCallbacks)
+      fn(deps.map(dep => moduleMap.get(dep)))
+    const loggedPath = isSelfUpdate
+      ? path
+      : `热模块边界 '${path}' 更新了 '${acceptedPath}' 模块`
+    console.log(`[m-vite] hot update: ${loggedPath}`)
+  }
+}
 
-    console.log(`[m-vite] hot update: ${path}`)
+let pending = false
+let queued: Promise<() => void>[] = []
+export async function queueUpdate(p: Promise<() => void>) {
+  queued.push(p)
+  if (!pending) {
+    pending = true
+    await Promise.resolve()
+    pending = false
+    const loading = [...queued]
+    queued = [] as Promise<() => void>[]
+    (await Promise.all(loading)).forEach(fn => fn && fn())
   }
 }
 
