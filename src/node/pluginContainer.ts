@@ -1,11 +1,16 @@
-import type {
-  LoadResult,
-  PartialResolvedId,
-  PluginContext,
-  ResolvedId,
-  RollupError,
-  SourceDescription,
-  TransformResult,
+import path from 'node:path'
+import {
+  type FunctionPluginHooks,
+  type InputOptions,
+  type LoadResult,
+  type NormalizedInputOptions,
+  type PartialResolvedId,
+  type PluginContext,
+  type ResolvedId,
+  type RollupError,
+  type SourceDescription,
+  type TransformResult,
+  VERSION,
 } from 'rollup'
 import { Parser } from 'acorn'
 import type { Plugin } from './plugin'
@@ -14,8 +19,8 @@ import type { ResolvedConfig } from './config'
 export const parser = Parser
 
 export declare interface PluginContainer {
-  // options: InputOptions
-  // buildStart(options: InputOptions): Promise<void>
+  options: InputOptions
+  buildStart(options: InputOptions): Promise<void>
   resolveId(
     id: string,
     importer?: string,
@@ -38,7 +43,7 @@ export declare interface PluginContainer {
       ssr?: boolean
     }
   ): Promise<LoadResult | null>
-  // close(): Promise<void>
+  close(): Promise<void>
 }
 
 // 模拟 Rollup 的插件机制
@@ -95,9 +100,31 @@ export async function createPluginContainer(config: ResolvedConfig): Promise<Plu
       throw new Error(err.toString())
     }
   }
-
-  // todo add buildStart hook, close hook, option
+  const rollupPkgPath = path.resolve(
+    config.root,
+    'node_modules/rollup',
+    'package.json',
+  )
+  const minimalContext = {
+    meta: {
+      rollupVersion: VERSION,
+      watchMode: true,
+    },
+  }
+  const rollupOptions = config.build?.rollupOptions || {}
+  let closed = false
   const pluginContainer: PluginContainer = {
+    options: await (async function () {
+      for (const plugin of plugins as Plugin[]) {
+        if (!plugin.options)
+          continue
+        const AfterRollupOptions = await (
+          plugin.options && (plugin.options as FunctionPluginHooks['options'])
+        ).call(minimalContext, rollupOptions)
+        return AfterRollupOptions || {}
+      }
+      return rollupOptions
+    }()),
     async resolveId(id, importer, options) {
       const ctx = new Context()
       const resolvedIdResult: PartialResolvedId = { id }
@@ -123,6 +150,21 @@ export async function createPluginContainer(config: ResolvedConfig): Promise<Plu
         }
       }
       return resolvedIdResult
+    },
+    // * 预构建前 开始调用
+    async buildStart() {
+      await Promise.all(
+        (plugins as Plugin[]).map((p) => {
+          if (p.buildStart) {
+            return (p.buildStart as FunctionPluginHooks['buildStart'])
+              .call(
+                new Context(p) as unknown as PluginContext,
+                pluginContainer.options as NormalizedInputOptions,
+              )
+          }
+          return undefined
+        }).filter(Boolean),
+      )
     },
     async load(id) {
       const ctx = new Context()
@@ -161,6 +203,26 @@ export async function createPluginContainer(config: ResolvedConfig): Promise<Plu
       return {
         code: source,
       }
+    },
+    async close() {
+      if (closed)
+        return
+      const ctx = new Context() as unknown as PluginContext
+      await Promise.all(
+        (plugins as Plugin[]).map((p) => {
+          if (p.buildEnd)
+            (p.buildEnd as FunctionPluginHooks['buildEnd']).call(ctx)
+          return undefined
+        }).filter(Boolean),
+      )
+      await Promise.all(
+        (plugins as Plugin[]).map((p) => {
+          if (p.closeBundle)
+            (p.closeBundle as FunctionPluginHooks['closeBundle']).call(ctx)
+          return undefined
+        }).filter(Boolean),
+      )
+      closed = true
     },
   }
 

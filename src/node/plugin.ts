@@ -1,4 +1,4 @@
-import type { CustomPluginOptions, LoadResult, PluginContext, ResolveIdResult, SourceDescription } from 'rollup'
+import type { CustomPluginOptions, LoadResult, PluginContext, ResolveIdResult, Plugin as RollupPlugin, SourceDescription } from 'rollup'
 import type { ServerContext } from './server'
 import type { ConfigEnv, ResolvedConfig, UserConfig } from './config'
 import type { HmrContext } from './hmr'
@@ -21,7 +21,7 @@ export type TransformResult =
   | void
   | Partial<SourceDescription>
 // 只实现以下这几个钩子
-export interface Plugin {
+export interface Plugin extends RollupPlugin {
   name: string
   enforce?: 'pre' | 'post'
 
@@ -41,10 +41,9 @@ export interface Plugin {
     options?: {
       custom?: CustomPluginOptions
       ssr?: boolean
-      // * Excluded from this release type: scan
       isEntry: boolean
     }
-  ) => Promise<ResolveIdResult> | LoadResult
+  ) => Promise<ResolveIdResult> | ResolveIdResult
   load?: (
     this: PluginContext,
     id: string,

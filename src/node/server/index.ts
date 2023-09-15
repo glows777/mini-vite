@@ -130,6 +130,7 @@ export async function startDevServer(inlineConfig: InlineConfig) {
     await Promise.all([
       watcher.close(),
       ws.close(),
+      pluginContainer.close(),
       server.close(),
     ])
   }
@@ -157,6 +158,8 @@ export async function startDevServer(inlineConfig: InlineConfig) {
   app.use(indexHtmlMiddleware(serverContext))
   app.use(transformMiddleware(serverContext))
   app.use(staticMiddleware(serverContext.root))
+
+  await pluginContainer.buildStart({})
   await optimize(root, resolvedConfig)
   server.listen(defaultPort, () => {
     console.log(
