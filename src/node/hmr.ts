@@ -58,7 +58,7 @@ export async function handleHMRUpdate(
   if (basename.startsWith('vite.config')) {
     console.clear()
     console.log(`✨${blue('[hmr]')} ${green(
-      `配置文件"${path.relative(process.cwd(), file)}" changed, restarting server...
+      `config file '${path.relative(process.cwd(), file)}' changed, restarting server...
     `)}`)
     try {
       await serverContext.restart()
@@ -99,7 +99,7 @@ export async function handleHMRUpdate(
   if (!hmrContext.modules.length) {
     // * html 文件不可以被热重载
     if (file.endsWith('.html')) {
-      console.log(`✨${blue('[hmr]:')} ${green('浏览器页面重载...')}`)
+      console.log(`✨${blue('[hmr]:')} ${green('browser page reloading...')}`)
       // * 发送 full-reload 到客户端，通知更新
       ws.send({
         type: 'full-reload',
@@ -110,7 +110,7 @@ export async function handleHMRUpdate(
       // * 监听到的文件不在项目引入文件范围内
       ws.send({
         type: 'log',
-        data: `[m-vite]: '${shortFileName}' 不在项目引入的文件范围内，不进行热更新`,
+        data: `[m-vite]: '${shortFileName}' is not within the scope of the files imported by the project and will not be hot module updated`,
       })
     }
     return
@@ -157,7 +157,7 @@ export function updateModules(
     // console.log(boundaries)
   }
   if (needFullReload) {
-    console.log(`✨${blue('[hmr]')} ${green(`页面重载 ${file}`)}`)
+    console.log(`✨${blue('[hmr]')} ${green(`page reloaded ${file}`)}`)
     ws.send({
       type: 'full-reload',
     })
@@ -171,7 +171,7 @@ export function updateModules(
     updates.map(({ path }) =>
         `✨${
           blue('[hmr] ')
-          }${green(`热模块更新 ${path}`)}`,
+          }${green(`hot module updated ${path}`)}`,
     ).join('\n'),
   )
   ws.send({

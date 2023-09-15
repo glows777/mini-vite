@@ -11,8 +11,7 @@ export function assertPlugin(): Plugin {
     },
     async load(id) {
       const cleanedId = removeImportQuery(cleanUrl(id))
-      const resolvedId = `/${getShortName(normalizePath(id), serverContext.root)}`
-
+      const resolvedId = `${getShortName(normalizePath(id), serverContext.root)}`
       if (cleanedId.endsWith('.svg')) {
         return {
           code: `export default '${resolvedId}'`,

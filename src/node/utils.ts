@@ -6,7 +6,7 @@ import { existsSync, readFileSync, statSync } from 'fs-extra'
 
 import type { ChokidarOptions } from 'rollup'
 import { bgRed } from 'picocolors'
-import { CLIENT_PUBLIC_PATH, HASH_RE, JS_TYPES_RE, QEURY_RE } from './constants'
+import { CLIENT_PUBLIC_PATH, HASH_RE, JS_TYPES_RE, QEURT_TIME_RE, QEURY_RE } from './constants'
 import type { ResolvedConfig, WatchOptions } from './config'
 
 const INTERNAL_LIST = [CLIENT_PUBLIC_PATH, '/@react-refresh']
@@ -22,6 +22,11 @@ export function normalizePath(id: string): string {
 }
 export function cleanUrl(url: string): string {
   return url.replace(HASH_RE, '').replace(QEURY_RE, '')
+}
+
+export function getTimeStampFromUrl(url: string) {
+  const matches = url.match(QEURT_TIME_RE)
+  return matches ? matches[1] : null
 }
 
 export function isJSRequest(id: string): boolean {

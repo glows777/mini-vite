@@ -78,7 +78,7 @@ export function importAnalysisPlugin(): Plugin {
           }
           if (modSource.endsWith('.svg')) {
           // * 加上 ?import 后缀，方便后续识别
-            const resolvedUrl = path.join(path.dirname(id), modSource)
+            const resolvedUrl = normalizePath(path.join(path.dirname(id), modSource))
             ms.overwrite(modStart, modEnd, `${resolvedUrl}?import`)
             continue
           }

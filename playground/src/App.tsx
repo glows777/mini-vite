@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { debounce } from 'lodash'
 
-// import logo from './logo.svg'
+import logo from '../public/logo.svg'
 import './App.css'
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        {/* <img className="App-logo" src={logo} alt="" /> */}
+        <img className="App-logo" src={logo} alt="" />
         <p>Hello m-Vite + React</p>
         <p>
           <button type="button" onClick={() => setCount2(count => count + 1)}>
@@ -19,7 +19,7 @@ function App() {
           </button>
         </p>
         <p>
-          Edit <code>App</code> and save a test.
+          Edit <code>App</code> and save a test
         </p>
         <p>
           <a

@@ -4,7 +4,7 @@ import type { NextHandleFunction } from 'connect'
 import createDebug from 'debug'
 import { existsSync, pathExists } from 'fs-extra'
 import type { SourceDescription } from 'rollup'
-import { cleanUrl, error, isClient, isCssRequest, isImportRequest, isJSRequest, isObject, isVirtual, osPath } from '../../utils'
+import { cleanUrl, error, getTimeStampFromUrl, isClient, isCssRequest, isImportRequest, isJSRequest, isObject, isVirtual, osPath } from '../../utils'
 import type { ServerContext } from '../index'
 
 const debug = createDebug('dev')
@@ -12,6 +12,7 @@ const debug = createDebug('dev')
 export async function transformRequest(
   url: string,
   serverContext: ServerContext,
+  timeStamp: string | null,
 ) {
   const { moduleGraph, root } = serverContext
 
@@ -30,7 +31,7 @@ export async function transformRequest(
       error(`pathError: 请检查导入语句的路径是否正确 根目录中无法找到 '${url}' 文件`)
   }
 
-  const transformResult = await doTransform(id, url, serverContext)
+  const transformResult = await doTransform(id, url, serverContext, timeStamp ? Number.parseInt(timeStamp) : undefined)
   return transformResult
 }
 
@@ -38,18 +39,18 @@ export async function doTransform(
   id: string,
   url: string,
   serverContext: ServerContext,
+  timeStamp?: number,
 ) {
   const { pluginContainer, moduleGraph } = serverContext
   const mod = moduleGraph.getModuleById(id)
-  const timeStamp = Date.now()
   // * 命中缓存
   if (mod && mod.transformResult) {
     // * 小于表示当前的 hmr 请求是最新的 需要最新的 transform 结果
-    // if (timeStamp && mod.lastHMRTimestamp < timeStamp)
-    //   mod.lastHMRTimestamp = timeStamp
-    // else
+    if (timeStamp && mod.lastHMRTimestamp < timeStamp)
+      mod.lastHMRTimestamp = timeStamp
+    else
     // * 不携带 t 参数的请求
-    return mod.transformResult
+      return mod.transformResult
   }
 
   // * 这里的 resolveId 的执行由插件 importAnalysis 内部执行
@@ -81,8 +82,9 @@ export function transformMiddleware(serverContext: ServerContext): NextHandleFun
       return next()
 
     const { url } = req
+    const timeStamp = getTimeStampFromUrl(url)
+
     debug('transformMiddleware: %o', url)
-    // console.log(req)
 
     // transform JS request
     if (isJSRequest(url) || isCssRequest(url) || isImportRequest(url)) {
@@ -92,7 +94,7 @@ export function transformMiddleware(serverContext: ServerContext): NextHandleFun
       }
       try {
       // 编译函数
-        let result: any = await transformRequest(url, serverContext)
+        let result: any = await transformRequest(url, serverContext, timeStamp)
         if (!result)
           return next()
 

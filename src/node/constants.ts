@@ -25,6 +25,7 @@ export const EXTERNAL_TYPES = [
 export const JS_TYPES_RE = /\.(?:j|t)sx?$|\.mjs$/
 export const BARE_IMPORT_RE = /^[\w@][^:]/
 export const QEURY_RE = /\?.*$/s
+export const QEURT_TIME_RE = /[?&]t=([^&]+)/
 export const HASH_RE = /#.*$/s
 export const HTMLTypesRE = /\.(html|vue)$/
 export const TYPERE = /\btype\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s'">]+))/im
