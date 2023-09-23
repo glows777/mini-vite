@@ -293,7 +293,7 @@ export async function resolveConfig(
       : path.join(resolvedRoot, '.m-vite')
   // * 如果没有这个目录，则创建一个
   if (!existsSync(cacheDir))
-    promises.mkdir(cacheDir)
+    await promises.mkdir(cacheDir)
 
   // * 初始化build参数
   const resolvedBuildOptions = resolveBuildOptions(config.build || {})
@@ -420,8 +420,6 @@ export async function loadConfigFromFile(
     throw new Error('can not find a config file')
   }
   // console.log('====== resolvedPath', resolvedPath)
-
-  // 读取 js ts ems cjs 格式的 config 文件
 
   // 标识是否是 EMS 格式
   let isESM = false

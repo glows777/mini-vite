@@ -9,9 +9,7 @@ export class ModuleNode {
   id: string | null = null
   // cleanUrl 去除 query hash 等参数的 id
   file: string | null = null
-  // 当前模块的类型
   type: 'js' | 'css'
-  // 当前模块的信息
   info?: ModuleInfo
   meat?: Record<string, any>
   // 该模块的引用方

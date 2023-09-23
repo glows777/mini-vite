@@ -2,12 +2,7 @@ import process from 'node:process'
 import path from 'node:path'
 import { createServer } from 'node:net'
 import http from 'node:http'
-
-// connect 是一个具有中间件机制的轻量级 Node.js 框架。
-// 既可以单独作为服务器，也可以接入到任何具有中间件机制的框架中，如 Koa、Express
 import connect from 'connect'
-
-// picocolors 是一个用来在命令行显示不同颜色文本的工具
 import { bgRed, blue, green, yellow } from 'picocolors'
 import type { FSWatcher } from 'chokidar'
 import chokidar from 'chokidar'

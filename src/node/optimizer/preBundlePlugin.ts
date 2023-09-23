@@ -1,13 +1,7 @@
 import path from 'node:path'
 
 import type { Loader, Plugin } from 'esbuild'
-
-// 用来分析 es 模块 import/export 语句的库
 import { init, parse } from 'es-module-lexer'
-
-// 一个实现了 node 路径解析算法的库
-
-// 一个更加好用的文件操作库
 import { promises } from 'fs-extra'
 
 // 用来开发打印 debug 日志的库
