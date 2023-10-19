@@ -32,3 +32,5 @@
     ![Alt text](./assert/dep.png)
 - 执行 `pnpm dev` , 启动 项目，随后打开浏览器，即可看到效果
   ![Alt text](./assert/preview.png)
+
+- 如有错误，欢迎 *pr* || *issue*
